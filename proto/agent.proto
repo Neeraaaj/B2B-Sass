@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package tasks;
+
+message Empty{}
+
+message Task {
+  string id = 1;
+  string title = 2;
+  bool completed = 3;
+}
+
+message TaskList {
+  repeated Task tasks = 1;
+}
+
+service TaskService{
+  rpc GetTasks (Empty) returns (TaskList);
+}
+
+
+// interface Empty{
+
+// }
+
+// interface Task {
+//     id: number,
+//     title: string,
+//     completed: boolean
+// }
+
+// interface TaskList {
+//     tasks: Task[]
+// }
+
+
+// class TaskService{
+//     GetTasks (prop: Empty): TaskList {
+//         return {tasks: [{id: 1, title: "", completed: false}]}
+//     }
+// }

@@ -1,0 +1,105 @@
+services:
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./gateway:/app
+      - /app/node_modules
+      - ./proto:/proto:ro
+    networks:
+      - microservices-net
+    depends_on:
+      - auth-service
+
+  auth-service:
+    container_name: auth-service
+    build: ./auth-service
+    env_file:
+      - './auth-service/.env'
+    ports:
+      - "50053:50053"
+    volumes:
+      - ./auth-service:/app
+      - /app/node_modules
+      - ./proto:/proto:ro
+    networks:
+      - microservices-net
+    depends_on:
+      mongo:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
+  # task-service:
+  #   build: ./task-service
+  #   ports:
+  #     - "50051:50051"
+  #   volumes:
+  #     - ./task-service:/app
+  #     - /app/node_modules
+  #     - ./proto:/proto:ro
+  #   depends_on:
+  #     - notification-service
+
+  notification-service:
+    container_name: notification-service
+    build: ./notification-service
+    env_file:
+      - './notification-service/.env'
+    ports:
+      - "50052:50052"
+    volumes:
+      - ./notification-service:/app
+      - /app/node_modules
+      - ./proto:/proto:ro
+    networks:
+      - microservices-net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    container_name: mongo
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password2003
+      - MONGO_INITDB_DATABASE=sales_agent_db
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - microservices-net
+    restart: always
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+      #communicate with RabbitMQ
+      #RabbitMQ management UI: this is the web dashboard
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=password123
+    networks:
+      - microservices-net
+    restart: always
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  mongo-data:
+    driver: local
+
+networks:
+  microservices-net:
+    driver: bridge
